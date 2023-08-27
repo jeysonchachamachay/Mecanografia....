@@ -1,97 +1,126 @@
-java
-import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
-public class TecladoVirtual extends JFrame implements ActionListener {
-    private JButton[] teclas;
-    private JTextArea texto;
-    private String[] pangramas;
-    private int pulsacionesCorrectas;
-    private int pulsacionesIncorrectas;
-    private String teclasDificultad;
+public class VirtualKeyboardApp extends JFrame implements ActionListener {
+    private JTextArea textArea;
+    private List<String> pangramList;
+    private String currentPangram;
+    private int correctKeyPresses;
+    private int incorrectKeyPresses;
+    private JLabel pangramLabel;
+    private JLabel statsLabel;
+    private char[] difficultKeys;
 
-    public TecladoVirtual() {
-        // Configuración de la ventana
-        setTitle("Teclado Virtual");
+    public VirtualKeyboardApp() {
+        setTitle("Virtual Keyboard App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
-        // Creación del teclado virtual
-        teclas = new JButton[26];
-        JPanel panelTeclado = new JPanel(new GridLayout(2, 13));
-        for (int i = 0; i < 26; i++) {
-            char letra = (char) (65 + i);
-            teclas[i] = new JButton(String.valueOf(letra));
-            teclas[i].addActionListener(this);
-            panelTeclado.add(teclas[i]);
+        setSize(800, 600);
+        setLocationRelativeTo(null);
+
+        JPanel keyboardPanel = createKeyboardPanel();
+        textArea = new JTextArea(10, 40);
+        pangramLabel = new JLabel();
+        statsLabel = new JLabel();
+        difficultKeys = new char[26];
+
+        loadPangramsFromFile(); // Load pangrams from a file into pangramList
+        updatePangramLabel();
+
+        add(keyboardPanel, BorderLayout.CENTER);
+        add(textArea, BorderLayout.SOUTH);
+        add(pangramLabel, BorderLayout.NORTH);
+        add(statsLabel, BorderLayout.PAGE_END);
+
+        setVisible(true);
+    }
+
+    private JPanel createKeyboardPanel() {
+        JPanel panel = new JPanel(new GridLayout(4, 10));
+
+        String[] keys = {
+            "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
+            "A", "S", "D", "F", "G", "H", "J", "K", "L",
+            "Z", "X", "C", "V", "B", "N", "M"
+        };
+
+        for (String key : keys) {
+            JButton button = new JButton(key);
+            button.addActionListener(this);
+            panel.add(button);
         }
-        
-        // Creación del área de texto
-        texto = new JTextArea();
-        texto.setEditable(false);
-        
-        // Composición de la interfaz
-        setLayout(new BorderLayout());
-        add(panelTeclado, BorderLayout.CENTER);
-        add(new JScrollPane(texto), BorderLayout.SOUTH);
-        
-        // Carga de los pangramas desde el archivo de texto plano
-        cargarPangramas();
-        
-        // Inicialización de las variables
-        pulsacionesCorrectas = 0;
-        pulsacionesIncorrectas = 0;
-        teclasDificultad = "";
+
+        return panel;
+    }
+
+    private void loadPangramsFromFile() {
+        pangramList = new ArrayList<>();
+        // Add pangrams from a file to pangramList
+        pangramList.add("El veloz murciélago hindú comía feliz cardillo y kiwi.");
+        pangramList.add("La cigüeña tocaba el saxofón detrás del palenque de paja.");
+        // Add more pangrams...
+    }
+
+    private void updatePangramLabel() {
+        if (!pangramList.isEmpty()) {
+            int randomIndex = new Random().nextInt(pangramList.size());
+            currentPangram = pangramList.get(randomIndex);
+            pangramLabel.setText("Pangram: " + currentPangram);
+        } else {
+            pangramLabel.setText("No more pangrams available.");
+        }
+    }
+
+    private void updateStatsLabel() {
+        StringBuilder stats = new StringBuilder();
+        stats.append("Correct Key Presses: ").append(correctKeyPresses);
+        stats.append(" | Incorrect Key Presses: ").append(incorrectKeyPresses);
+        stats.append(" | Difficult Keys: ").append(difficultKeysToString());
+        statsLabel.setText(stats.toString());
+    }
+
+    private String difficultKeysToString() {
+        StringBuilder result = new StringBuilder();
+        for (char key : difficultKeys) {
+            if (key != '\0') {
+                result.append(key).append(" ");
+            }
+        }
+        return result.toString();
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        JButton boton = (JButton) e.getSource();
-        
-        // Resaltar el botón correspondiente en la GUI
-        boton.setBackground(Color.YELLOW);
-        try {
-            Thread.sleep(200); // Retraso para el efecto visual
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-        boton.setBackground(null);
-        
-        // Agregar el carácter al área de texto
-        String caracter = boton.getText();
-        texto.append(caracter);
-        
-        // Verificar la precisión del usuario
-        if (caracter.equals(pangramas[0].substring(texto.getText().length() - 1, texto.getText().length()))) {
-            pulsacionesCorrectas++;
-        } else {
-            pulsacionesIncorrectas++;
-            if (!teclasDificultad.contains(caracter)) {
-                teclasDificultad += caracter + " ";
+        JButton button = (JButton) e.getSource();
+        String key = button.getText();
+        textArea.append(key);
+
+        if (currentPangram != null && !currentPangram.isEmpty()) {
+            if (currentPangram.startsWith(textArea.getText())) {
+                correctKeyPresses++;
+            } else {
+                incorrectKeyPresses++;
+                updateDifficultKeys(key.charAt(0));
             }
         }
-        
-        // Mostrar un pangrama aleatorio en la pantalla
-        mostrarPangramaAleatorio();
+
+        updateStatsLabel();
     }
-    
-    private void cargarPangramas() {
-        // Código para cargar los pangramas desde un archivo de texto plano
-        // y almacenarlos en el arreglo pangramas[]
-    }
-    
-    private void mostrarPangramaAleatorio() {
-        // Código para mostrar un pangrama aleatorio en la pantalla
-    }
-    
-    public void generarInforme() {
-        // Código para generar y mostrar el informe con las teclas de dificultad
+
+    private void updateDifficultKeys(char key) {
+        key = Character.toUpperCase(key);
+        if (key >= 'A' && key <= 'Z') {
+            if (difficultKeys[key - 'A'] == '\0') {
+                difficultKeys[key - 'A'] = key;
+            }
+        }
     }
 
     public static void main(String[] args) {
-        TecladoVirtual tecladoVirtual = new TecladoVirtual();
-        tecladoVirtual.setSize(500, 300);
-        tecladoVirtual.setVisible(true);
+        SwingUtilities.invokeLater(() -> new VirtualKeyboardApp());
     }
 }
-
